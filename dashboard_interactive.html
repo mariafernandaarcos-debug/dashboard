@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard — Interactive</title>
+  <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    :root{--green-1:#0b6b4f;--green-2:#2aa76a;--bg:#f6fbf7;--card:#fff}
+    body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:#163522}
+    header{display:flex;align-items:center;gap:16px;padding:18px 28px;background:#ffffff;border-bottom:1px solid rgba(11,107,79,0.06)}
+    .logo img{height:56px;margin-right:12px;display:block}
+    .title{font-size:28px;font-weight:700}
+    .layout{display:flex;gap:18px;padding:20px}
+    .sidebar{width:320px}
+    .card{background:var(--card);padding:16px;border-radius:10px;box-shadow:0 8px 24px rgba(11,107,79,0.06)}
+    #plot{height:520px}
+    #map{height:420px}
+    .small{font-size:13px;color:#6b8b7a}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo"><img src="logo.png" alt="logo"></div>
+    <div>
+      <div class="title">Análisis del Mercado Mexicano Industria de Pescados y Mariscos</div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div style="display:flex;gap:18px;width:100%">
+      <div style="flex:1">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div>
+              <div id="main-title" style="font-size:16px;font-weight:700;color:var(--green-1)">Exportaciones Nivel País</div>
+                <div class="small">Serie histórica y pronóstico hasta 2027</div>
+                <div class="small" style="font-weight:600">Fuente: Banco de México</div>
+            </div>
+          </div>
+
+          <div style="margin-top:10px;margin-bottom:8px">
+            <div style="margin-bottom:6px"><strong class="small">Serie</strong></div>
+            <div style="display:flex;gap:12px;margin-bottom:10px">
+              <label><input type="radio" name="serie" value="export" checked> Exportaciones</label>
+              <label><input type="radio" name="serie" value="import"> Importaciones</label>
+            </div>
+          </div>
+          <div id="plot-main" style="height:520px"></div>
+        </div>
+      </div>
+
+      <div style="flex:1">
+        <div class="card">
+          <div id="map-title" style="font-size:16px;font-weight:700;color:var(--green-1);margin-bottom:8px">Exportaciones por Estado</div>
+          <div class="small" style="margin-bottom:6px">Visualice valores por entidad federativa</div>
+          <div class="small" style="font-weight:600;margin-bottom:10px">Fuente: Secretaría de Economía</div>
+          <div style="margin-top:6px;margin-bottom:8px">
+            <div style="margin-bottom:6px"><strong class="small">Serie</strong></div>
+            <div style="display:flex;gap:12px;margin-bottom:10px">
+              <label><input type="radio" name="map-serie" value="Exportaciones" checked> Exportaciones</label>
+              <label><input type="radio" name="map-serie" value="Importaciones"> Importaciones</label>
+            </div>
+            <div style="margin-bottom:6px"><strong class="small">Año</strong></div>
+            <select id="map-year" style="width:100%;padding:8px;border-radius:6px;border:1px solid #e6efe8"></select>
+          </div>
+          <div id="map"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// File paths
+const csvExport = 'forecast_exportaciones.csv';
+const csvImport = 'forecast_importaciones.csv';
+const stateCSV = './Expor%3AImpor%20por%20Estado.csv';
+const geoJSONPath = 'mexico_states.geojson';
+
+// normalization helper
+function normalizeName(s){
+  if(!s) return '';
+  return s.toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[^a-z0-9\s]/g,'')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+const aliasMap = {
+  'veracruzdeignaciodelallave': 'Veracruz',
+  'veracruzdeignacio': 'Veracruz',
+  'edomex': 'México',
+  'estado de mexico': 'México',
+  'mexico': 'México',
+  'df': 'Ciudad de México',
+  'distrito federal': 'Ciudad de México',
+  'ciudad de mexico': 'Ciudad de México'
+};
+
+function toTrace(data, col, name, color){
+  return {
+    x: data.map(r=> new Date(r.fecha)),
+    y: data.map(r=> r[col]===null||r[col]===undefined?NaN:r[col]),
+    name: name,
+    mode: 'lines+markers',
+    line: {color: color},
+    marker:{size:4}
+  };
+}
+
+async function loadCSV(path){
+  const resp = await fetch(path);
+  if(!resp.ok) throw new Error('Could not load '+path);
+  const txt = await resp.text();
+  return Papa.parse(txt, {header:true, dynamicTyping:true, skipEmptyLines:true}).data;
+}
+
+async function draw(series){
+  const csv = series==='export' ? csvExport : csvImport;
+  const data = await loadCSV(csv);
+  data.forEach(r=>{ ['actual','val_pred','val_lower','val_upper','fc_pred','fc_lower','fc_upper'].forEach(k=>{ if(r[k]==='') r[k]=null }) });
+
+  const hist = {x: data.map(r=> new Date(r.fecha)), y:data.map(r=>r.actual), name:'Histórico', mode:'lines', line:{color:'black'}};
+  const fc = {x: data.map(r=> new Date(r.fecha)), y: data.map(r=> r.fc_pred), name:'Pronóstico 2027', mode:'lines', line:{color:'rgba(42,167,106,1)'}};
+
+  Plotly.newPlot('plot-main', [hist, fc], {margin:{t:30,r:20,l:50,b:50}, legend:{orientation:'h'}, xaxis:{title:'Fecha'}, yaxis:{title:'Miles de Dólares'}}, {responsive:true});
+}
+
+function setupMainControls(){
+  function updateMainTitle(val){
+    const el = document.getElementById('main-title');
+    const label = val === 'export' ? 'Exportaciones' : 'Importaciones';
+    if(el) el.textContent = `${label} Nivel País`;
+  }
+  document.querySelectorAll('input[name=serie]').forEach(r=> r.addEventListener('change', ()=>{
+    const v = document.querySelector('input[name=serie]:checked').value;
+    updateMainTitle(v);
+    draw(v);
+  }));
+  updateMainTitle('export');
+  draw('export');
+}
+
+let stateData = null;
+async function loadStateData(){
+  if(stateData) return stateData;
+  try{
+    const resp = await fetch(stateCSV);
+    if(!resp.ok) throw new Error('HTTP '+resp.status+' fetching '+stateCSV);
+    const txt = await resp.text();
+    stateData = Papa.parse(txt, {header:true, dynamicTyping:true, skipEmptyLines:true}).data;
+    return stateData;
+  }catch(err){ console.error('Could not load state CSV:', err); return null; }
+}
+
+let mexGeo = null;
+async function loadMexGeo(){ if(mexGeo) return mexGeo; const resp = await fetch(geoJSONPath); if(!resp.ok) return null; mexGeo = await resp.json(); return mexGeo; }
+
+function yearsFromData(data){ const s = new Set(); data.forEach(r=> s.add(r['AÑO'])); return Array.from(s).sort((a,b)=>a-b); }
+
+async function drawMap(series, year){
+  await loadStateData(); const geo = await loadMexGeo(); if(!geo) return;
+  const geoIndex = {};
+  (geo.features||[]).forEach(f=>{ const name = (f.properties && (f.properties.name || f.properties.NAME || f.properties.NOMBRE)) || ''; const n = normalizeName(name); if(n) geoIndex[n]=name; });
+
+  const rows = stateData.filter(r=> r['EXPORTACIONES/IMPORTACIONES']===series && String(r['AÑO'])===String(year));
+  if(!rows || rows.length===0){ try{ Plotly.purge('map'); }catch(e){}; return; }
+
+  const matched=[]; const vals=[]; const mapping={};
+  rows.forEach(r=>{
+    const orig = r['ESTADO']; const n = normalizeName(orig); let matchedName = null;
+    if(geoIndex[n]) matchedName = geoIndex[n]; else if(aliasMap[n]) matchedName = aliasMap[n]; else {
+      for(const gnorm in geoIndex){ if(gnorm.includes(n) || n.includes(gnorm)){ matchedName = geoIndex[gnorm]; break; } const gtokens = gnorm.split(' '); for(const t of gtokens){ if(t && n.includes(t)){ matchedName = geoIndex[gnorm]; break; } } if(matchedName) break; }
+    }
+    if(matchedName){ matched.push(matchedName); vals.push(Number(r['VALOR'])); mapping[orig]=matchedName; } else { mapping[orig]=null; }
+  });
+
+  if(matched.length===0){
+    const stateCoords = {'Aguascalientes':[21.885,-102.291],'Baja California':[31.755,-116.642],'Baja California Sur':[26.000,-111.353],'Campeche':[19.83,-90.534],'Chiapas':[16.756,-93.129],'Chihuahua':[28.632,-106.069],'Ciudad de México':[19.433,-99.133],'Colima':[19.243,-103.724],'Durango':[24.027,-104.653],'Estado de México':[19.292,-99.596],'Guanajuato':[21.019,-101.257],'Guerrero':[17.538,-99.504],'Hidalgo':[20.091,-98.762],'Jalisco':[20.66,-103.35],'Michoacán':[19.566,-101.706],'Morelos':[18.681,-99.101],'Nayarit':[21.751,-104.845],'Nuevo León':[25.669,-100.309],'Oaxaca':[17.073,-96.726],'Puebla':[19.041,-98.206],'Querétaro':[20.588,-100.389],'Quintana Roo':[19.18,-88.479],'Sinaloa':[25.172,-107.479],'Sonora':[29.297,-110.33],'Tamaulipas':[23.758,-98.95],'Tlaxcala':[19.315,-98.237],'Veracruz de Ignacio de la Llave':[19.173,-96.134],'Yucatán':[20.709,-89.094],'Zacatecas':[22.77,-102.583]};
+    const lats=[], lons=[], texts=[], valsA=[];
+    rows.forEach(r=>{ const st=r['ESTADO']; const coord=stateCoords[st]; if(!coord) return; lats.push(coord[0]); lons.push(coord[1]); valsA.push(Number(r['VALOR'])); texts.push(st+'<br>'+Number(r['VALOR']).toLocaleString()); });
+    const maxVal = Math.max(...valsA,1); const sizes = valsA.map(v=> Math.max(6, (v/maxVal)*60));
+    const dataPlot=[{type:'scattergeo', lon:lons, lat:lats, text:texts, hoverinfo:'text', marker:{size:sizes, color:'rgba(42,167,106,0.8)', line:{color:'#0b6b4f',width:0.5}}}];
+    const layoutMap={title:{text:'Importaciones - Exportaciones por Estado'}, geo:{scope:'north america', showland:true, landcolor:'#fff', showcountries:false, countrycolor:'#dddddd', lataxis:{range:[14,33]}, lonaxis:{range:[-118,-86]}, center:{lon:-102.5, lat:23.0}}, margin:{t:40,b:10,l:10,r:10}};
+    Plotly.react('map', dataPlot, layoutMap, {responsive:true});
+    return;
+  }
+
+  const dataPlot = [{ type:'choropleth', geojson: geo, locations: matched, z: vals, featureidkey:'properties.name', colorscale:'Greens', reversescale:true, marker:{line:{color:'#ffffff', width:0.5}}, colorbar:{title:'Millones de dólares'}, hovertemplate: '%{location}<br>Valor: %{z:,}<extra></extra>' }];
+  const layoutMap = {title:{text:`${series} por Estado`}, geo:{scope:'north america', showland:true, landcolor:'#fff', showcountries:false, countrycolor:'#dddddd', fitbounds:'locations', center:{lon:-102.5, lat:23.0}}, margin:{t:40,b:10,l:10,r:10}};
+  Plotly.react('map', dataPlot, layoutMap, {responsive:true});
+  const mapTitleEl = document.getElementById('map-title'); if(mapTitleEl) mapTitleEl.textContent = `${series} por Estado`;
+}
+
+// Setup map: Exportaciones desde Estado (interactive, per-state to world)
+async function setupExportFromStateMap(){
+  const container = document.querySelector('.layout'); if(!container) return;
+  const expPath = './Exportaciones%20por%20Estado%20.csv';
+  let rows = await loadCSV(expPath).catch(e=>{ console.error('load exp by state', e); return []; });
+  function cleanRowLocal(row){ const cleaned={}; Object.keys(row||{}).forEach(k=>{ const nk = k.replace(/\ufeff/g,'').trim(); cleaned[nk]=row[k]; }); return cleaned; }
+  rows = rows.map(r=> cleanRowLocal(r));
+
+  const card = document.createElement('div');
+  card.style.margin = '0 auto 12px';
+  card.style.maxWidth = '1200px';
+  card.style.width = 'calc(100% - 40px)';
+  card.innerHTML = `
+    <div class="card" style="padding:12px">
+      <div style="display:flex;align-items:center;margin-bottom:8px;position:relative">
+        <div id="exp-from-title" style="position:absolute;left:50%;transform:translateX(-50%);font-size:18px;font-weight:700;color:#2f4f3f">Exportaciones desde —</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
+          <div style="font-weight:600">Estado:</div>
+          <select id="exp-from-state" style="padding:6px;border-radius:6px;border:1px solid #e6efe8"></select>
+        </div>
+      </div>
+      <div id="exp-from-map" style="height:560px;width:100%"></div>
+      <div class="small" style="margin-top:8px;font-weight:600">Fuente: Secretaría de Economía</div>
+    </div>
+  `;
+  // Insert the card inside the layout, right after the top row (Exportaciones Nivel País + Exportaciones por Estado)
+  try{
+    // Create wrapperRow but insert it after any existing element(s) immediately following .layout
+    const wrapperRow = document.createElement('div');
+    wrapperRow.id = 'exp-from-wrapper';
+    wrapperRow.style.width = '100%';
+    wrapperRow.style.display = 'block';
+    wrapperRow.style.textAlign = 'center';
+    wrapperRow.style.marginTop = '12px';
+    wrapperRow.appendChild(card);
+    try{
+      // Insert the map wrapper immediately after the .layout container
+      if(container && container.parentNode) container.parentNode.insertBefore(wrapperRow, container.nextSibling);
+      else if(container) container.appendChild(wrapperRow);
+    }catch(e){
+      if(container && container.parentNode) container.parentNode.insertBefore(wrapperRow, container.nextSibling);
+      else if(container) container.appendChild(wrapperRow);
+    }
+  }catch(e){ container.parentNode.insertBefore(card, container.nextSibling); }
+
+  const stateSet = Array.from(new Set(rows.map(r=> (r['Estado']||r['Estado ' ]||'').toString().trim()).filter(Boolean))).sort();
+  const stateSel = document.getElementById('exp-from-state');
+  stateSet.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; stateSel.appendChild(o); });
+  if(stateSet.length>0) {
+    const preferred = stateSet.find(s=> s.toLowerCase().includes('baja california')) || stateSet[0];
+    stateSel.value = preferred;
+  }
+
+  function renderForState(state){
+    const filtered = rows.filter(r=> (r['Estado']||r['Estado ' ]||'').toString().trim().toLowerCase() === (state||'').toString().trim().toLowerCase());
+    if(!filtered || filtered.length===0){ try{ Plotly.purge('exp-from-map'); }catch(e){}; document.getElementById('exp-from-title').textContent = `Exportaciones desde ${state}`; return; }
+    // aggregate by Country
+    const agg = {};
+    filtered.forEach(r=>{
+      const country = (r['Country']||r['Country ']||r['Country ID']||r['Country Name']||r['Country']||r['Country Name']||r['Country\n']||r['Country']).toString().trim() || r['Country'] || r['Country '];
+      const val = Number(r['Trade Value'] || r['Trade_Value'] || r['TradeValue'] || r['Trade Value']);
+      const share = Number(r['Share']||r['Share ' ]||r['Share\n']||0);
+      if(!agg[country]) agg[country] = {val:0, share:0};
+      agg[country].val += isNaN(val)?0:val;
+      agg[country].share += isNaN(share)?0:share;
+    });
+    const countries = Object.keys(agg);
+    // values in millions
+    const vals = countries.map(c=> agg[c].val / 1e6);
+    // share is already percentage in source
+    const shares = countries.map(c=> agg[c].share);
+    const dataPlot = [{
+      type:'choropleth',
+      locations: countries,
+      locationmode:'country names',
+      z: vals,
+      customdata: shares,
+      colorscale:[[0,'#eaf6ed'],[1,'#0b6b4f']],
+      marker:{line:{color:'white', width:0.5}},
+      colorbar:{title:'Millones de USD'},
+      hovertemplate: '%{location}<br>Valor: %{z:,.2f} M USD<br>% Exportación: %{customdata:.2f}%<extra></extra>'
+    }];
+    const layout = {
+      margin:{t:20,b:10,l:10,r:10},
+      geo:{
+        projection:{type:'natural earth', scale:200},
+        showland:true,
+        landcolor:'#f7fbf6',
+        showcountries:true,
+        countrycolor:'#e6efe8',
+        showcoastlines:false,
+        showframe:false,
+        fitbounds:'locations'
+      },
+      paper_bgcolor:'transparent',
+      plot_bgcolor:'transparent'
+    };
+    Plotly.react('exp-from-map', dataPlot, layout, {responsive:true});
+    document.getElementById('exp-from-title').textContent = `Exportaciones desde ${state}`;
+  }
+
+  stateSel.addEventListener('change', ()=> renderForState(stateSel.value));
+  if(stateSet.length>0) renderForState(stateSel.value);
+}
+
+document.addEventListener('DOMContentLoaded', async ()=>{
+  try{ setupMainControls(); }catch(e){ console.error(e); }
+  await loadStateData();
+  const yrsRaw = yearsFromData(stateData); const yrs = yrsRaw.map(y=>String(y)); const sel = document.getElementById('map-year'); sel.innerHTML=''; yrs.forEach(y=>{ const o=document.createElement('option'); o.value=String(y); o.textContent=String(y); sel.appendChild(o); });
+  if(yrs.indexOf('2022')!==-1) sel.value='2022'; else if(yrs.length>0) sel.value = yrs[yrs.length-1];
+  document.querySelectorAll('input[name=map-serie]').forEach(r=> r.addEventListener('change', ()=> { try{ drawMap(document.querySelector('input[name=map-serie]:checked').value, sel.value); }catch(err){ console.error(err); } }));
+  sel.addEventListener('change', ()=> { try{ drawMap(document.querySelector('input[name=map-serie]:checked').value, sel.value); }catch(err){ console.error(err); } });
+  try{ await drawMap(document.querySelector('input[name=map-serie]:checked').value, sel.value); }catch(err){ console.error(err); }
+  try{ await setupExportFromStateMap(); }catch(e){ console.error('Export-from-state init error', e); }
+  try{ await setupScoringSection(); }catch(e){ console.error('Scoring init error', e); }
+});
+
+// --- Scoring section ---
+async function setupScoringSection(){
+  const container = document.querySelector('.layout'); if(!container) return;
+  // Find the export-from wrapper if it exists, to insert scoring elements after it
+  const wrapperRow = document.getElementById('exp-from-wrapper');
+  const insertBase = wrapperRow || container;
+  // Create a small controls card (Empresa + alpha) placed directly under the maps
+  const controls = document.createElement('div');
+  controls.style.margin = '20px';
+  controls.innerHTML = `
+    <div class="card" style="padding:12px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:14px;font-weight:700;color:var(--green-1)">Empresa</div>
+      <select id="sc-empresa" style="width:100%;padding:8px;border-radius:6px;border:1px solid #e6efe8"></select>
+      <div style="font-size:14px;font-weight:700;color:var(--green-1);margin-top:6px">Importancia de Sensibilidad Térmica (alpha)</div>
+      <input id="sc-alpha" type="range" min="0" max="2" step="0.1" value="1" style="width:100%">
+      <div class="small" id="sc-alpha-val">1.0</div>
+    </div>
+  `;
+  container.parentNode.insertBefore(controls, insertBase.nextSibling);
+
+  // Insert contacts card immediately after the top .layout so it appears below the two main charts
+  const contactsCardRow = document.createElement('div');
+  contactsCardRow.style.margin = '0 20px 20px 20px';
+  contactsCardRow.innerHTML = `
+    <div class="card" style="padding:18px">
+      <div style="font-size:18px;font-weight:700;color:#2f4f3f;margin-bottom:8px;text-align:center">Contactos por Estado</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <div style="font-weight:600">Estado:</div>
+        <select id="sc-contacts-state" style="flex:1;padding:6px;border-radius:6px;border:1px solid #e6efe8"></select>
+      </div>
+      <div id="sc-contacts-table" style="max-height:320px;overflow:auto;width:100%"></div>
+    </div>
+  `;
+  // Insert contacts directly after the top .layout
+  container.parentNode.insertBefore(contactsCardRow, container.nextSibling);
+
+  // Main scoring card (big score + contribution bar). Charts (world map + pie) are placed below side-by-side.
+  const wrapper = document.createElement('div'); wrapper.style.margin='20px'; wrapper.innerHTML = `
+    <div class="card" style="padding:18px">
+      <div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap">
+          <div style="flex:1;min-width:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;text-align:center">
+            <div style="font-size:16px;font-weight:700;color:var(--green-1);margin-bottom:6px">Score de Prioridad</div>
+            <div style="font-size:56px;font-weight:800;color:var(--green-1);line-height:1;margin-bottom:8px" id="sc-score">—</div>
+          </div>
+          <div style="flex:2;min-width:420px">
+            <div style="position:relative">
+              <div style="font-size:18px;font-weight:700;color:#2f4f3f;margin-bottom:8px;text-align:center">Porcentaje de Contribución de Variables Clave a Riesgo Logístico</div>
+              <button id="sc-info-btn" aria-label="info" title="Información" style="position:absolute;top:0;right:0;width:28px;height:28px;border-radius:50%;border:none;background:#eef7ef;color:#2f4f3f;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">i</button>
+              <div id="sc-info-box" style="display:none;position:absolute;top:36px;right:0;width:320px;background:#fff;border:1px solid #e6efe8;border-radius:8px;padding:10px;box-shadow:0 6px 18px rgba(11,107,79,0.06);z-index:60">
+                <div style="font-weight:700;margin-bottom:6px">Nota</div>
+                <ul style="padding-left:18px;margin:0">
+                  <li>FDA / FSMA: Indica el nivel de exposición a requisitos regulatorios del mercado estadounidense.</li>
+                  <li>FSC 22000: Señala el nivel de adopción de estándares internacionales de seguridad alimentaria.</li>
+                </ul>
+              </div>
+              <div id="sc-bar" style="height:320px"></div>
+            </div>
+          </div>
+      </div>
+    </div>
+  `;
+  container.parentNode.insertBefore(wrapper, controls.nextSibling);
+
+  // Bottom row: place global map and market-share pie side-by-side
+  const bottomRow = document.createElement('div'); bottomRow.style.display = 'flex'; bottomRow.style.gap = '18px'; bottomRow.style.margin = '0 20px 20px 20px';
+  bottomRow.innerHTML = `
+    <div style="flex:1">
+      <div class="card" style="height:360px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:18px">
+        <div style="font-size:18px;font-weight:700;color:#2f4f3f;margin-bottom:8px">Mapa Global de Shipments por Empresa</div>
+        <div class="small" style="align-self:flex-start;margin-bottom:8px;font-weight:600">Fuente: Panjiva</div>
+        <div id="sc-world-map" style="flex:1;width:100%;background:#fff;border-radius:6px;padding:8px"></div>
+      </div>
+    </div>
+    <div style="flex:1">
+      <div class="card" style="height:360px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:18px">
+        <div style="font-size:18px;font-weight:700;color:#2f4f3f;margin-bottom:8px">Market Share por Empresa</div>
+        <div class="small" style="align-self:flex-start;margin-bottom:8px;font-weight:600">Fuente: Euromonitor</div>
+        <div id="sc-pie" style="flex:1;width:100%"></div>
+      </div>
+    </div>
+  `;
+  container.parentNode.insertBefore(bottomRow, wrapper.nextSibling);
+
+  // Add trips card (full-width) and then contacts (full-width below)
+  const tripsCardRow = document.createElement('div');
+  tripsCardRow.style.margin = '0 20px 12px 20px';
+  tripsCardRow.innerHTML = `
+    <div class="card" style="padding:18px;text-align:center">
+      <div id="sc-trips-label" style="font-size:18px;color:#2f4f3f;margin-bottom:6px">Viajes realizados por <span id="sc-trips-empresa" style="font-weight:400;color:#2f4f3f"></span> en 2025</div>
+      <div id="sc-trips-value" style="font-size:64px;font-weight:800;color:#0b6b4f;line-height:1;margin-top:6px">—</div>
+    </div>
+  `;
+  container.parentNode.insertBefore(tripsCardRow, bottomRow.nextSibling);
+
+  
+
+  // Info button behavior for contribution note
+  try{
+    const infoBtn = document.getElementById('sc-info-btn');
+    const infoBox = document.getElementById('sc-info-box');
+    if(infoBtn && infoBox){
+      infoBtn.addEventListener('click', (e)=>{ e.stopPropagation(); infoBox.style.display = infoBox.style.display==='block' ? 'none' : 'block'; });
+      infoBox.addEventListener('click', (e)=> e.stopPropagation());
+      document.addEventListener('click', ()=>{ if(infoBox) infoBox.style.display='none'; });
+    }
+  }catch(err){ console.error('info box init', err); }
+
+  const riskPath = './analisis%20de%20riesgo.csv';
+  const exportsPath = './exportaci%C3%B3n%20porcentaje%20por%20empresa.csv';
+  const marketPath = './market%20share.csv';
+  const tripsPath = './Viajes%20por%20empresa.csv';
+  const contactsPath = './Contactos%20Estado.csv';
+  let risk = await loadCSV(riskPath).catch(e=>{ console.error('load risk', e); return [] });
+  let exportsData = await loadCSV(exportsPath).catch(e=>{ console.error('load exports', e); return [] });
+  let market = await loadCSV(marketPath).catch(e=>{ console.error('load market', e); return [] });
+  let trips = await loadCSV(tripsPath).catch(e=>{ console.error('load trips', e); return [] });
+  let contacts = await loadCSV(contactsPath).catch(e=>{ console.error('load contacts', e); return [] });
+
+  function cleanRow(row){ const cleaned={}; Object.keys(row).forEach(k=>{ const nk = k.replace(/\ufeff/g,'').trim(); cleaned[nk]=row[k]; }); return cleaned; }
+  risk = risk.map(r=> cleanRow(r)); exportsData = exportsData.map(r=> cleanRow(r)); market = market.map(r=> cleanRow(r));
+  // Ensure trips and contacts rows are cleaned too so column keys match expected names
+  trips = trips.map(r=> cleanRow(r));
+  contacts = contacts.map(r=> cleanRow(r));
+
+  risk.forEach(r=>{ ['FSC 22000','Produccion_todo_el_ano','Logistica_cadena_de_frio','FDA_FSMA','T-MEC','Sensibilidad_Termica','Tamano_ventas(USD_B)','Dependencia_USA(%ventas)'].forEach(k=>{ if(r[k]!==undefined && r[k]!==null && r[k]!="") r[k]=Number(String(r[k]).replace(/,/g,'')); else r[k]=NaN; }); });
+
+  const empresas = Array.from(new Set(risk.map(r=> r['Empresa']).filter(Boolean))).sort();
+  const sel = document.getElementById('sc-empresa'); empresas.forEach(e=>{ const o=document.createElement('option'); o.value=e; o.textContent=e; sel.appendChild(o); });
+  const alphaEl = document.getElementById('sc-alpha'); const alphaVal = document.getElementById('sc-alpha-val'); alphaEl.addEventListener('input', ()=>{ alphaVal.textContent = alphaEl.value; computeAndRender(); }); sel.addEventListener('change', ()=> computeAndRender());
+
+  // Populate contacts state selector
+  try{
+    const stateSel = document.getElementById('sc-contacts-state');
+    const stateKeys = contacts.map(c=> (c['entidad']||c['estado']||'').toString().trim()).filter(Boolean);
+    const states = Array.from(new Set(stateKeys)).sort();
+    if(stateSel){
+      states.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; stateSel.appendChild(o); });
+      stateSel.addEventListener('change', ()=> renderContactsForState(stateSel.value));
+      if(states.length>0) stateSel.value = states[0];
+    }
+  }catch(err){ console.error('init contacts selector', err); }
+
+  function renderContactsForState(state){
+    try{
+      const tdiv = document.getElementById('sc-contacts-table'); if(!tdiv) return;
+      const rows = (contacts||[]).filter(r=> ((r['entidad']||r['estado']||'').toString().trim().toLowerCase() === (state||'').toString().trim().toLowerCase()));
+      if(rows.length===0){ tdiv.innerHTML = '<div class="small">No hay contactos para este estado.</div>'; return; }
+      let html = '<table style="width:100%;border-collapse:collapse"><thead><tr style="text-align:left"><th style="padding:6px;border-bottom:1px solid #e6efe8">Empresa</th><th style="padding:6px;border-bottom:1px solid #e6efe8">Teléfono</th><th style="padding:6px;border-bottom:1px solid #e6efe8">Correo</th></tr></thead><tbody>';
+      rows.forEach(r=>{
+        const name = (r['Nombre']||r['nombre']||'') || '';
+        const tel = (r['telefono']||r['tel']||'') || '';
+        const mail = (r['correoelec']||r['correo']||r['email']||'') || '';
+        html += `<tr><td style="padding:6px;border-bottom:1px solid #f1f6f3">${escapeHtml(name)}</td><td style="padding:6px;border-bottom:1px solid #f1f6f3">${escapeHtml(tel)}</td><td style="padding:6px;border-bottom:1px solid #f1f6f3">${escapeHtml(mail)}</td></tr>`;
+      });
+      html += '</tbody></table>';
+      tdiv.innerHTML = html;
+    }catch(err){ console.error('render contacts', err); }
+  }
+
+  function escapeHtml(s){ if(s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function computeAndRender(){
+    const empresa = sel.value; const alpha = Number(alphaEl.value); const df = risk.filter(r=> r['Empresa']===empresa)[0]; if(!df){ document.getElementById('sc-score').textContent='—'; return; }
+    const FSC_riesgo = 1 - (isNaN(df['FSC 22000'])?0:df['FSC 22000']);
+    const produccion_riesgo = 1 - (isNaN(df['Produccion_todo_el_ano'])?0:df['Produccion_todo_el_ano']);
+    const Logistica_norm = (isNaN(df['Logistica_cadena_de_frio'])?1:df['Logistica_cadena_de_frio'] - 1) / 4;
+    const FDA_norm = (isNaN(df['FDA_FSMA'])?1:df['FDA_FSMA'] - 1) / 4;
+    const TMEC_norm = (isNaN(df['T-MEC'])?1:df['T-MEC'] - 1) / 4;
+    const sens_term_norm = (isNaN(df['Sensibilidad_Termica'])?1:df['Sensibilidad_Termica'] - 1) / 4;
+    const score_logistico = 0.35 * Logistica_norm + 0.25 * sens_term_norm + 0.20 * produccion_riesgo + 0.10 * FDA_norm + 0.07 * TMEC_norm + 0.03 * FSC_riesgo;
+    const ventasVals = risk.map(r=> Number(r['Tamano_ventas(USD_B)']) ).filter(v=> !isNaN(v)); const vmin = Math.min(...ventasVals); const vmax = Math.max(...ventasVals);
+    const ventas_norm = ( (Number(df['Tamano_ventas(USD_B)']) - vmin) / (vmax - vmin) ) + 0.05; const dependencia_norm = (isNaN(df['Dependencia_USA(%ventas)'])?0:df['Dependencia_USA(%ventas)']) / 100;
+    const prioridad_raw = score_logistico * ventas_norm * dependencia_norm * (1 + alpha * sens_term_norm);
+    const all_raw = risk.map(r=>{ const F = 1 - (isNaN(r['FSC 22000'])?0:r['FSC 22000']); const P = 1 - (isNaN(r['Produccion_todo_el_ano'])?0:r['Produccion_todo_el_ano']); const L = (isNaN(r['Logistica_cadena_de_frio'])?1:r['Logistica_cadena_de_frio'] - 1)/4; const Fd = (isNaN(r['FDA_FSMA'])?1:r['FDA_FSMA'] - 1)/4; const Tm = (isNaN(r['T-MEC'])?1:r['T-MEC'] - 1)/4; const S = (isNaN(r['Sensibilidad_Termica'])?1:r['Sensibilidad_Termica'] - 1)/4; const sv = Number(r['Tamano_ventas(USD_B)']); const dv = (isNaN(r['Dependencia_USA(%ventas)'])?0:r['Dependencia_USA(%ventas)'])/100; const vnorm = ((sv - vmin)/(vmax - vmin)) + 0.05; return (0.35*L + 0.25*S + 0.20*P + 0.10*Fd + 0.07*Tm + 0.03*F) * vnorm * dv * (1 + alpha * S); }).filter(x=> !isNaN(x));
+    const maxRaw = Math.max(...all_raw, prioridad_raw, 1e-9); const prioridad = 100 * prioridad_raw / maxRaw; document.getElementById('sc-score').textContent = prioridad.toFixed(3);
+
+    const contribNames = ["Cadena de frío","Sensibilidad térmica","Temporalidad de la Producción","FDA FSMA","T-MEC","FSC22000"];
+    const contribVals = [0.35 * Logistica_norm, 0.25 * sens_term_norm, 0.20 * produccion_riesgo, 0.10 * FDA_norm, 0.07 * TMEC_norm, 0.03 * FSC_riesgo];
+    const contribLayout = {margin:{t:20,b:50,l:60,r:20}, yaxis:{title:'Contribución'}};
+    const maxContrib = Math.max(...contribVals, 1e-9);
+    Plotly.react('sc-bar', [{
+      x: contribNames,
+      y: contribVals,
+      type: 'bar',
+      marker: {
+        color: contribVals,
+        colorscale: [[0,'#e8f5e9'],[1,'#1b5e20']],
+        cmin: 0,
+        cmax: maxContrib,
+        line: {color: '#e6efe8', width: 1}
+      }
+    }], contribLayout, {responsive:true});
+
+    const expRows = exportsData.filter(r=> r['Empresa']===empresa); const mapLocations = expRows.map(r=> r['pais']); const mapVals = expRows.map(r=> Number(r['Porcentaje']));
+
+    // Compute trips for selected empresa in 2025
+    try{
+      const yearTarget = '2025';
+      const empresaKey = (empresa||'').toString().trim();
+      const tripsFiltered = (trips||[]).filter(t=>{
+        const name = (t['Exportador']||t['Exportador ' ]||t['Exportador\n']||t['Empresa']||t['empresa']||t['Company']||'').toString().trim();
+        if(!name) return false;
+        if(name.toLowerCase() !== empresaKey.toLowerCase()) return false;
+        const y = t['AÑO']||t['Año']||t['Year']||t['year']||t['YEAR']||t['Year\n']||t['ANIO'];
+        if(y===undefined || y===null) return true; // if no year column, keep row (assume each row=trip)
+        return String(y).trim().startsWith(yearTarget);
+      });
+      let tripsCount = 0;
+      if(tripsFiltered.length>0){
+        // check if there's a numeric column indicating counts
+        const sample = tripsFiltered[0];
+        const numKey = Object.keys(sample).find(k=> /viaje|trip|count|cantidad|numero|num/i.test(k));
+        if(numKey){ tripsCount = tripsFiltered.reduce((s,r)=> s + (Number(r[numKey])||0), 0); }
+        else { tripsCount = tripsFiltered.length; }
+      }
+      const labelEl = document.getElementById('sc-trips-label'); const empresaSpan = document.getElementById('sc-trips-empresa'); const valEl = document.getElementById('sc-trips-value');
+      if(empresaSpan) empresaSpan.textContent = empresaKey;
+      if(valEl) valEl.textContent = tripsCount.toLocaleString();
+    }catch(err){ console.error('trips compute', err); }
+    Plotly.react(document.getElementById('sc-world-map'), [{ type:'choropleth', locations: mapLocations, locationmode:'country names', z: mapVals, zmin:0, zmax:100, colorscale:[[0,'#eaf6ed'],[1,'#0b6b4f']], marker:{line:{color:'white',width:0.5}}, colorbar:{title:'% Shipments', ticks:'outside', tickformat:'.0f'} }], {geo:{projection:{type:'natural earth', scale:200}, showland:true, landcolor:'#f7fbf6', showcountries:true, countrycolor:'#e6efe8', showcoastlines:false, showframe:false, fitbounds:'locations'}, margin:{t:10,b:10,l:10,r:10}}, {responsive:true});
+
+    const marketRows = market.map(m=> ({Empresa: m['Empresa'], value: Number(m['Market Share'])}));
+    const labels = marketRows.map(m=> m.Empresa); const values = marketRows.map(m=> m.value);
+    function lerp(a,b,t){ return Math.round(a + (b-a)*t); } function hexToRgb(hex){ hex=hex.replace('#',''); return [parseInt(hex.substring(0,2),16),parseInt(hex.substring(2,4),16),parseInt(hex.substring(4,6),16)]; }
+    function rgbToHex(r,g,b){ return '#'+[r,g,b].map(v=> v.toString(16).padStart(2,'0')).join(''); }
+    const light = '#e8f5e9'; const dark = '#1b5e20'; const lr = hexToRgb(light); const dr = hexToRgb(dark);
+    const colors = marketRows.map((m,i)=>{ const t = i/(Math.max(1, marketRows.length-1)); return rgbToHex(lerp(lr[0],dr[0],t), lerp(lr[1],dr[1],t), lerp(lr[2],dr[2],t)); });
+    const selectedIdx = marketRows.findIndex(m=> m.Empresa===empresa); if(selectedIdx!==-1) colors[selectedIdx]=dark; const pulls = marketRows.map((m,i)=> i===selectedIdx?0.06:0);
+    Plotly.react('sc-pie', [{ labels: labels, values: values, type:'pie', hole:0.55, marker:{colors:colors, line:{color:'white',width:2}}, pull:pulls, textinfo:'percent' }], {margin:{t:10,b:10,l:10,r:160}, legend:{orientation:'v', x:0.98, xanchor:'left', font:{size:12}}, showlegend:true}, {responsive:true});
+  }
+
+  if(empresas.length>0){ sel.value = empresas[0]; computeAndRender(); }
+}
+</script>
+</body>
+</html>

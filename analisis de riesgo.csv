@@ -1,0 +1,5 @@
+﻿Empresa,Estado,localidad,Producto_principal,Produccion_todo_el_ano,Sensibilidad_Termica,Tamano_ventas(USD_B),Dependencia_USA(%ventas),T-MEC,FDA_FSMA,Logistica_cadena_de_frio,FSC 22000
+Marindustrias SA de CV,Colima,Manzanillo,Atún enlatado,1,2,56.27,0.25,1,2,1,1
+Congeladora Daysa SA de CV,Colima,Manzanillo,Camaron,0,5,11.56,0.9,1,3,3,0
+Pinsa Congelados SA de CV,Sinaloa,Mazatlan,Atún aleta amarilla,1,4,5.27,0.092,1,1,1,0
+Ahome Acuicola SA de CV,Sinaloa,Los Mochis,Camaron (Acuacultura),1,5,2.21,0.97,1,3,4,0

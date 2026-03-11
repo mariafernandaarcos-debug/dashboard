@@ -1,0 +1,140 @@
+﻿Estado,Continent ID,Continent,Country ID,Country,Trade Value,Share
+Baja California,af,África,ben,Benin,294085,0.097247129
+Baja California,af,África,bfa,Burkina Faso,222417,0.073548174
+Baja California,af,África,civ,Côte d'Ivoire,7568360,2.502682154
+Baja California,af,África,cmr,Camerún,101790,0.033659606
+Baja California,af,África,cod,"Congo, República Democrática del",70200,0.023213521
+Baja California,af,África,cog,"Congo, República del",252633,0.083539908
+Baja California,af,África,gab,Gabón,531580,0.17578125
+Baja California,af,África,gha,Ghana,3088717,1.021367498
+Baja California,af,África,gin,Guinea,807806,0.267122819
+Baja California,af,África,gnq,Guinea Ecuatorial,156600,0.051784009
+Baja California,af,África,mli,Malí,27000,0.008928277
+Baja California,af,África,mus,Mauricio,71553,0.023660927
+Baja California,af,África,nam,Namibia,76950,0.025445591
+Baja California,af,África,nga,Nigeria,3457248,1.143232202
+Baja California,af,África,tgo,Togo,215758,0.071346196
+Baja California,af,África,zaf,Sudáfrica,3426838,1.133176316
+Baja California,as,Asia,are,Emiratos Árabes Unidos,1401313,0.4633819
+Baja California,as,Asia,chn,China,48088177,15.9016514
+Baja California,as,Asia,cyp,Chipre,217890,0.072051199
+Baja California,as,Asia,geo,Georgia,68176,0.022544231
+Baja California,as,Asia,hkg,Hong Kong,5210313,1.722930379
+Baja California,as,Asia,idn,Indonesia,2400,0.000793625
+Baja California,as,Asia,jpn,Japón,24145265,7.984282435
+Baja California,as,Asia,kor,Corea del Sur,21894864,7.240126711
+Baja California,as,Asia,lka,Sri Lanka,51990,0.017191894
+Baja California,as,Asia,mys,Malasia,2983272,0.986499267
+Baja California,as,Asia,phl,Filipinas,55493,0.018350256
+Baja California,as,Asia,sau,Arabia Saudita,225450,0.074551117
+Baja California,as,Asia,sgp,Singapur,40032,0.013237659
+Baja California,as,Asia,tha,Tailandia,5741677,1.898640202
+Baja California,as,Asia,twn,Taiwán (Región),509587,0.168508672
+Baja California,as,Asia,vnm,Vietnam,883640,0.292199375
+Baja California,eu,Europa,esp,España,1389824,0.459582753
+Baja California,eu,Europa,gbr,Reino Unido,585132,0.193489661
+Baja California,eu,Europa,grc,Grecia,167626,0.055430053
+Baja California,eu,Europa,ita,Italia,1357460,0.448880724
+Baja California,eu,Europa,ltu,Lituania,23490,0.007767601
+Baja California,eu,Europa,lva,Letonia,52946,0.017508021
+Baja California,eu,Europa,mda,Moldavia,616951,0.204011471
+Baja California,eu,Europa,nld,Países Bajos,648165,0.214333221
+Baja California,eu,Europa,prt,Portugal,158363,0.052366993
+Baja California,eu,Europa,rou,Rumania,1007073,0.333015822
+Baja California,eu,Europa,srb,Serbia,423502,0.140042347
+Baja California,eu,Europa,ukr,Ucrania,306280,0.101279734
+Baja California,na,América del Norte,can,Canadá,1684223,0.556933714
+Baja California,na,América del Norte,cri,Costa Rica,25380,0.008392581
+Baja California,na,América del Norte,dma,Dominica,37758,0.0124857
+Baja California,na,América del Norte,dom,República Dominicana,2072008,0.685165273
+Baja California,na,América del Norte,gtm,Guatemala,15606,0.005160544
+Baja California,na,América del Norte,pan,Panamá,702105,0.232169936
+Baja California,na,América del Norte,pri,Puerto Rico,43740,0.01446381
+Baja California,na,América del Norte,usa,Estados Unidos,145543871,48.12800244
+Baja California,na,América del Norte,vgb,Islas Vírgenes Británicas,12798839,4.232280964
+Baja California,oc,Oceanía,aus,Australia,107173,0.03543964
+Baja California,sa,América del Sur,bra,Brasil,738269,0.244128537
+Baja California,sa,América del Sur,col,Colombia,15098,0.00499256
+Sinaloa,af,África,ben,Benin,32400,0.029021718
+Sinaloa,as,Asia,hkg,Hong Kong,2800683,2.508661527
+Sinaloa,as,Asia,jpn,Japón,1622354,1.453194476
+Sinaloa,as,Asia,tha,Tailandia,6,5.37439E-06
+Sinaloa,as,Asia,vnm,Vietnam,6375296,5.710556961
+Sinaloa,eu,Europa,esp,España,48177017,43.15369824
+Sinaloa,eu,Europa,fra,Francia,1232262,1.103776568
+Sinaloa,na,América del Norte,gtm,Guatemala,235966,0.211362309
+Sinaloa,na,América del Norte,pan,Panamá,47601,0.042637741
+Sinaloa,na,América del Norte,usa,Estados Unidos,50655215,45.37349962
+Sinaloa,sa,América del Sur,ecu,Ecuador,150000,0.134359808
+Sinaloa,sa,América del Sur,per,Perú,224246,0.200864329
+Sinaloa,sa,América del Sur,ven,Venezuela,87483,0.078361327
+Sonora,af,África,civ,Côte d'Ivoire,310500,0.302193899
+Sonora,af,África,gab,Gabón,191109,0.185996695
+Sonora,af,África,gin,Guinea,91746,0.089291728
+Sonora,af,África,lbr,Liberia,11966,0.011645901
+Sonora,af,África,zaf,Sudáfrica,46184,0.044948544
+Sonora,as,Asia,brn,Brunéi,69270,0.067416977
+Sonora,as,Asia,chn,China,1413750,1.375931156
+Sonora,as,Asia,hkg,Hong Kong,464940,0.452502516
+Sonora,as,Asia,jpn,Japón,7254489,7.060426127
+Sonora,as,Asia,kor,Corea del Sur,11935490,11.61620694
+Sonora,as,Asia,mys,Malasia,146264,0.142351331
+Sonora,as,Asia,sau,Arabia Saudita,100125,0.097446583
+Sonora,as,Asia,tha,Tailandia,163727,0.159347183
+Sonora,as,Asia,twn,Taiwán (Región),35206,0.034264214
+Sonora,as,Asia,vnm,Vietnam,172456,0.167842676
+Sonora,na,América del Norte,usa,Estados Unidos,80341378,78.19218753
+Yucatán,af,África,civ,Côte d'Ivoire,70840,0.081692275
+Yucatán,as,Asia,hkg,Hong Kong,21000,0.024217077
+Yucatán,as,Asia,jpn,Japón,726182,0.837428845
+Yucatán,as,Asia,mys,Malasia,48960,0.056460386
+Yucatán,as,Asia,sgp,Singapur,1081812,1.247539285
+Yucatán,as,Asia,vnm,Vietnam,1174195,1.354074822
+Yucatán,eu,Europa,esp,España,363990,0.419751144
+Yucatán,eu,Europa,fra,Francia,249207,0.287384058
+Yucatán,eu,Europa,gbr,Reino Unido,845789,0.975358939
+Yucatán,eu,Europa,grc,Grecia,304000,0.350571026
+Yucatán,eu,Europa,ita,Italia,3584600,4.133739802
+Yucatán,eu,Europa,mco,Mónaco,166632,0.19215905
+Yucatán,na,América del Norte,bmu,Bermuda,165889,0.191302227
+Yucatán,na,América del Norte,can,Canadá,3720060,4.289951484
+Yucatán,na,América del Norte,dom,República Dominicana,627303,0.723402159
+Yucatán,na,América del Norte,pan,Panamá,319138,0.368028079
+Yucatán,na,América del Norte,pri,Puerto Rico,298945,0.344741629
+Yucatán,na,América del Norte,slv,El Salvador,39856,0.045961707
+Yucatán,na,América del Norte,usa,Estados Unidos,71764421,82.75831151
+Yucatán,oc,Oceanía,aus,Australia,1109475,1.279440096
+Yucatán,sa,América del Sur,ecu,Ecuador,33372,0.038484396
+Baja California Sur,af,África,dza,Argelia,153582,0.224950477
+Baja California Sur,af,África,sle,Sierra Leona,137700,0.201688223
+Baja California Sur,af,África,zaf,Sudáfrica,1283977,1.880632092
+Baja California Sur,as,Asia,chn,China,17229273,25.23559513
+Baja California Sur,as,Asia,hkg,Hong Kong,788589,1.155040769
+Baja California Sur,as,Asia,ind,India,549867,0.805386332
+Baja California Sur,as,Asia,irn,Irán,90068,0.131921967
+Baja California Sur,as,Asia,kor,Corea del Sur,1462049,2.1414529
+Baja California Sur,as,Asia,mys,Malasia,1727694,2.530541265
+Baja California Sur,as,Asia,tha,Tailandia,6176888,9.047244463
+Baja California Sur,na,América del Norte,usa,Estados Unidos,38674007,56.64554638
+Colima,eu,Europa,esp,España,8935021,81.0335283
+Colima,eu,Europa,fra,Francia,1330986,12.07098357
+Colima,eu,Europa,ita,Italia,649115,5.886956362
+Colima,na,América del Norte,usa,Estados Unidos,111204,1.008531763
+Campeche,as,Asia,mys,Malasia,305959,4.611588878
+Campeche,eu,Europa,ita,Italia,763248,11.50410999
+Campeche,na,América del Norte,usa,Estados Unidos,3869018,58.31605012
+Campeche,sa,América del Sur,col,Colombia,1696343,25.56825101
+Ciudad de México,as,Asia,hkg,Hong Kong,12644,0.238192076
+Ciudad de México,as,Asia,kor,Corea del Sur,2445300,46.06541315
+Ciudad de México,na,América del Norte,can,Canadá,180,0.003390903
+Ciudad de México,na,América del Norte,gtm,Guatemala,2204528,41.52966635
+Ciudad de México,na,América del Norte,usa,Estados Unidos,633371,11.93166351
+Ciudad de México,sa,América del Sur,chl,Chile,12298,0.231674008
+Quintana Roo,na,América del Norte,can,Canadá,41880,1.259780748
+Quintana Roo,na,América del Norte,usa,Estados Unidos,1387947,41.75045151
+Quintana Roo,oc,Oceanía,aus,Australia,1894561,56.98976774
+Estado de México,as,Asia,hkg,Hong Kong,1976195,86.07923387
+Estado de México,na,América del Norte,gtm,Guatemala,12831,0.558893555
+Estado de México,na,América del Norte,slv,El Salvador,150,0.00653371
+Estado de México,na,América del Norte,usa,Estados Unidos,306610,13.35533887
+Tamaulipas ,na,América del Norte,usa,Estados Unidos,1408649,100
