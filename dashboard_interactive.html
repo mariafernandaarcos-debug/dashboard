@@ -506,7 +506,13 @@ async function setupScoringSection(){
       }
     }], contribLayout, {responsive:true});
 
-    const expRows = exportsData.filter(r=> r['Empresa']===empresa); const mapLocations = expRows.map(r=> r['pais']); const mapVals = expRows.map(r=> Number(r['Porcentaje']));
+    const expRows = exportsData.filter(r=> r['Empresa']===empresa);
+    // detect column names case-insensitively
+    const sampleExp = expRows[0] || {};
+    const paisKey = Object.keys(sampleExp).find(k=> /^pa[ií]s$/i.test(k.trim())) || Object.keys(sampleExp).find(k=> /pa[ií]s/i.test(k)) || 'pais';
+    const pctKey = Object.keys(sampleExp).find(k=> /porcentaje|percent|share/i.test(k)) || 'Porcentaje';
+    const mapLocations = expRows.map(r=> r[paisKey]);
+    const mapVals = expRows.map(r=> Number(r[pctKey]));
 
     // Compute trips for selected empresa in 2025
     try{
