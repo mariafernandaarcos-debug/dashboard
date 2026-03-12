@@ -119,6 +119,18 @@ async function loadCSV(path){
   return Papa.parse(txt, {header:true, dynamicTyping:true, skipEmptyLines:true}).data;
 }
 
+async function loadCSVFromCandidates(paths){
+  let lastErr = null;
+  for(const path of paths){
+    try{
+      return await loadCSV(path);
+    }catch(err){
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('Could not load any candidate CSV path');
+}
+
 async function draw(series){
   const csv = series==='export' ? csvExport : csvImport;
   const data = await loadCSV(csv);
@@ -421,12 +433,17 @@ async function setupScoringSection(){
   }catch(err){ console.error('info box init', err); }
 
   const riskPath = './analisis%20de%20riesgo.csv';
-  const exportsPath = './exportacion%20porcentaje%20por%20empresa.csv';
+  const exportsPaths = [
+    './exportacion%20porcentaje%20por%20empresa.csv',
+    './exportacion porcentaje por empresa.csv',
+    './exportaci%C3%B3n%20porcentaje%20por%20empresa.csv',
+    './exportación porcentaje por empresa.csv'
+  ];
   const marketPath = './market%20share.csv';
   const tripsPath = './Viajes%20por%20empresa.csv';
   const contactsPath = './Contactos%20Estado.csv';
   let risk = await loadCSV(riskPath).catch(e=>{ console.error('load risk', e); return [] });
-  let exportsData = await loadCSV(exportsPath).catch(e=>{ console.error('load exports', e); return [] });
+  let exportsData = await loadCSVFromCandidates(exportsPaths).catch(e=>{ console.error('load exports', e); return [] });
   let market = await loadCSV(marketPath).catch(e=>{ console.error('load market', e); return [] });
   let trips = await loadCSV(tripsPath).catch(e=>{ console.error('load trips', e); return [] });
   let contacts = await loadCSV(contactsPath).catch(e=>{ console.error('load contacts', e); return [] });
