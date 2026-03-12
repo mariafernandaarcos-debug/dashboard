@@ -511,7 +511,27 @@ async function setupScoringSection(){
     const sampleExp = expRows[0] || {};
     const paisKey = Object.keys(sampleExp).find(k=> /^pa[ií]s$/i.test(k.trim())) || Object.keys(sampleExp).find(k=> /pa[ií]s/i.test(k)) || 'pais';
     const pctKey = Object.keys(sampleExp).find(k=> /porcentaje|percent|share/i.test(k)) || 'Porcentaje';
-    const mapLocations = expRows.map(r=> r[paisKey]);
+
+    // Spanish → English translation for Plotly locationmode:'country names'
+    const esToEn = {
+      'Estados Unidos':'United States','España':'Spain','México':'Mexico','Francia':'France',
+      'Panamá':'Panama','Taiwán':'Taiwan','Perú':'Peru','Corea del Sur':'South Korea',
+      'Bélgica':'Belgium','Canadá':'Canada','Libia':'Libya','Nueva Zelanda':'New Zealand',
+      'Tailandia':'Thailand','Singapur':'Singapore','Turquía':'Turkey','Reino Unido':'United Kingdom',
+      'Dinamarca':'Denmark','Japón':'Japan','Noruega':'Norway','Alemania':'Germany',
+      'Suiza':'Switzerland','Hungría':'Hungary','Países Bajos':'Netherlands','Suecia':'Sweden',
+      'Grecia':'Greece','Islandia':'Iceland','Irlanda':'Ireland','Malasia':'Malaysia',
+      'Eslovenia':'Slovenia','Brasil':'Brazil','Polonia':'Poland','República Checa':'Czech Republic',
+      'Chipre':'Cyprus','Hong Kong':'Hong Kong','China':'China','Vietnam':'Vietnam',
+      'Guatemala':'Guatemala','Cuba':'Cuba','Venezuela':'Venezuela','Angola':'Angola',
+      'Indonesia':'Indonesia','Ecuador':'Ecuador','Honduras':'Honduras','Chile':'Chile',
+      'Costa Rica':'Costa Rica','India':'India','Italia':'Italy','Australia':'Australia',
+      'Malta':'Malta','Austria':'Austria','Ghana':'Ghana','Puerto Rico':'Puerto Rico',
+      'Corea':'South Korea'
+    };
+
+    const mapLocations = expRows.map(r=> { const es = (r[paisKey]||'').toString().trim(); return esToEn[es] || es; });
+    const mapLabels = expRows.map(r=> (r[paisKey]||'').toString().trim());
     const mapVals = expRows.map(r=> Number(r[pctKey]));
 
     // Compute trips for selected empresa in 2025
@@ -538,7 +558,7 @@ async function setupScoringSection(){
       if(empresaSpan) empresaSpan.textContent = empresaKey;
       if(valEl) valEl.textContent = tripsCount.toLocaleString();
     }catch(err){ console.error('trips compute', err); }
-    Plotly.react(document.getElementById('sc-world-map'), [{ type:'choropleth', locations: mapLocations, locationmode:'country names', z: mapVals, zmin:0, zmax:100, colorscale:[[0,'#eaf6ed'],[1,'#0b6b4f']], marker:{line:{color:'white',width:0.5}}, colorbar:{title:'% Shipments', ticks:'outside', tickformat:'.0f'} }], {geo:{projection:{type:'natural earth'}, showland:true, landcolor:'#f7fbf6', showcountries:true, countrycolor:'#e6efe8', showcoastlines:false, showframe:false, showocean:true, oceancolor:'#eaf4fb'}, margin:{t:10,b:10,l:10,r:10}}, {responsive:true});
+    Plotly.react(document.getElementById('sc-world-map'), [{ type:'choropleth', locations: mapLocations, locationmode:'country names', z: mapVals, text: mapLabels, zmin:0, zmax:100, colorscale:[[0,'#eaf6ed'],[1,'#0b6b4f']], marker:{line:{color:'white',width:0.5}}, colorbar:{title:'% Shipments', ticks:'outside', tickformat:'.0f'}, hovertemplate:'%{text}<br>%{z:.1f}%<extra></extra>' }], {geo:{projection:{type:'natural earth'}, showland:true, landcolor:'#f7fbf6', showcountries:true, countrycolor:'#e6efe8', showcoastlines:false, showframe:false, showocean:true, oceancolor:'#eaf4fb'}, margin:{t:10,b:10,l:10,r:10}}, {responsive:true});
 
     const marketRows = market.map(m=> ({Empresa: m['Empresa'], value: Number(m['Market Share'])}));
     const labels = marketRows.map(m=> m.Empresa); const values = marketRows.map(m=> m.value);
