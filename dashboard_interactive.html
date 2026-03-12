@@ -532,7 +532,7 @@ async function setupScoringSection(){
       if(empresaSpan) empresaSpan.textContent = empresaKey;
       if(valEl) valEl.textContent = tripsCount.toLocaleString();
     }catch(err){ console.error('trips compute', err); }
-    Plotly.react(document.getElementById('sc-world-map'), [{ type:'choropleth', locations: mapLocations, locationmode:'country names', z: mapVals, zmin:0, zmax:100, colorscale:[[0,'#eaf6ed'],[1,'#0b6b4f']], marker:{line:{color:'white',width:0.5}}, colorbar:{title:'% Shipments', ticks:'outside', tickformat:'.0f'} }], {geo:{projection:{type:'natural earth', scale:200}, showland:true, landcolor:'#f7fbf6', showcountries:true, countrycolor:'#e6efe8', showcoastlines:false, showframe:false, fitbounds:'locations'}, margin:{t:10,b:10,l:10,r:10}}, {responsive:true});
+    Plotly.react(document.getElementById('sc-world-map'), [{ type:'choropleth', locations: mapLocations, locationmode:'country names', z: mapVals, zmin:0, zmax:100, colorscale:[[0,'#eaf6ed'],[1,'#0b6b4f']], marker:{line:{color:'white',width:0.5}}, colorbar:{title:'% Shipments', ticks:'outside', tickformat:'.0f'} }], {geo:{projection:{type:'natural earth'}, showland:true, landcolor:'#f7fbf6', showcountries:true, countrycolor:'#e6efe8', showcoastlines:false, showframe:false, showocean:true, oceancolor:'#eaf4fb'}, margin:{t:10,b:10,l:10,r:10}}, {responsive:true});
 
     const marketRows = market.map(m=> ({Empresa: m['Empresa'], value: Number(m['Market Share'])}));
     const labels = marketRows.map(m=> m.Empresa); const values = marketRows.map(m=> m.value);
